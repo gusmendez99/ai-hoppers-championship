@@ -1,1 +1,1 @@
-# ai-hoppers-championship
+# AI - Hoppers Tournament
