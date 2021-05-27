@@ -4,18 +4,16 @@ import random
 import numpy as np
 import time
 
-from board import Board
-from referee import Referee
-from utils import getCoords
+from game.board import Board
+from game.referee import Referee
+from game.utils import getCoords
 
-TURN_ERROR = "It isn't your turn right now."
-INPUT_ERROR = "Invalid input: %s. Try again."
-WAIT_MSG = "Awaiting players... (%s/%s).\n"
-MAX_PLAYERS = 2
-BUFF_SIZE = 4096
+import game.constants
+
 WINNER = False
 TIME_LIMIT = 900 #for 15 mins
 TIME_EXP = False
+
 
 if len(sys.argv) <= 1:
     print("<PORT NUMBER> not defined")
@@ -55,7 +53,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
     while not WINNER or not TIME_EXP:
         #start to recieve moves
         print("Recieving coords from first player")
-        first_player_req = sock.recv(BUFF_SIZE) #this method could be recvfrom for check the address of the player
+        first_player_req = sock.recv(game.constants.BUFF_SIZE) #this method could be recvfrom for check the address of the player
         coords = getCoords(first_player_req)
         legal_moves = referee.generate_legal_moves(coords[0][0], coords[0][1], board)
         if coords[1] in legal_moves:
@@ -76,7 +74,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
 
         
         print("Recieving coords from second player")
-        second_player_req = sock.recv(BUFF_SIZE) #this method could be recvfrom for check the address of the player
+        second_player_req = sock.recv(game.constants.BUFF_SIZE) #this method could be recvfrom for check the address of the player
         coords = getCoords(second_player_req)
         legal_moves = referee.generate_legal_moves(coords[0][0], coords[0][1], board)
         if coords[1] in legal_moves:
