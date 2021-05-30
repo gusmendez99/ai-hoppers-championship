@@ -21,32 +21,29 @@ if len(sys.argv) <= 1:
 
 board = Board()
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
 
-    server_address = ('localhost', int(sys.argv[1]))
+    server_address = ("localhost", int(sys.argv[1]))
 
     sock.bind(server_address)
 
-    sock.listen(3)
-
-    while len(board.players) < MAX_PLAYERS:
+    while len(board.players) < game.constants.MAX_PLAYERS:
         print("Waiting for players ... ")
-        conn, addr = sock.accept()
+        conn, addr = sock.recvfrom(game.constants.BUFF_SIZE)
         print("One player entered!")
         board.players.append(addr) #ponerle algo mas bonito como add player
 
     print("Game ready!")
-    board = Board()
     referee = Referee()
     board.pp_board()
 
-    #turno will be choose as follow:
+    # Turn will be choose as follow:
     #   the first one to be connected will go first and goes in the buttom corner
     #   te second one to be connected will go second and goes in the up corner
 
-    #send XML with init Game message an started positions
-    sock.sendto("StartPos:(0,0)", board.players[0])
-    sock.sendto("StartPos:(10,10)", board.players[1])
+    # TODO: send XML/JSON with init Game message an started positions
+    sock.sendto("P(0,0)".encode(), board.players[0])
+    sock.sendto("P(9,9)".encode(), board.players[1])
 
     start = time.time()
 

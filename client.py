@@ -3,6 +3,7 @@ import sys
 import threading
 import time
 import game.constants
+from ast import literal_eval as make_tuple
 
 EXIT_CODES = {
     game.constants.SERVER_FULL: "Server is full! Try again later",
@@ -17,27 +18,41 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 server_address = (SERVER_ADDRESS, int(sys.argv[1]))
 
 if len(sys.argv) <= 1:
-    print("usage: client <PORT>")
+    print("usage: client.py <PORT>")
     sys.exit()
 
-def display_game():
+def display_game(board):
     # this function handles displaying the game
     # TODO: add board local representation
-    # board.print_status()
+    print(board)
 
-def display_thread():
+def game_thread():
     # this function handles display
     global GAME_OVER
     while not GAME_OVER:
         response, _ = sock.recvfrom(game.constants.BUFF_SIZE)
-        # TODO: check if server response is a new move response
-        if response[0] == game.constants.NEW_MOVE:
-            # process new move
-            # new_move = response[something]
-            # board.process_move(new_move)
-            display_game()
 
-        elif response in EXIT_CODES:
+        # Parse response bytes to string
+        response = response.decode()
+        
+        if response[0] == game.constants.MY_PLAYER_POSITION:
+            # Payload: Player position, assigned by the server
+            player_position = None
+            if game.constants.P1_POSITION == make_tuple(response[1:]):
+                player_position = game.constants.P1_POSITION
+            elif game.constants.P2_POSITION == make_tuple(response[1:]):
+                player_position = game.constants.P2_POSITION
+
+            x, y = player_position
+            print("Player assigned to: {},{}".format(x, y))
+
+            # TODO: initialize your board, knowing which player (x,y) you were assigned by the server
+
+
+            # TODO: start local game
+            
+
+        elif response[0] in EXIT_CODES:
             print(EXIT_CODES[response])
             GAME_OVER = True
 
@@ -45,27 +60,30 @@ def display_thread():
             print(response)
 
 def bot_thread():
+    new_move = "GG"
+    sock.sendto(new_move.encode(), server_address)
     # this function handles bot input
     while not GAME_OVER:
         # listen for Minimax or RL & MCTS Bot
         # TODO: await for Bot response
-        # new_move = await 
-        # sock.sendto(new_move, server_address)
+        # new_move = await
+        a = 1 
+        
 
 def start_game():
     # this function launches the game
     bot = threading.Thread(target=bot_thread)
-    display = threading.Thread(target=display_thread)
+    game = threading.Thread(target=game_thread)
     bot.daemon = True
-    display.daemon = True
+    game.daemon = True
     bot.start()
-    display.start()
+    game.start()
     while not GAME_OVER:
         time.sleep(1)
 
 def initialize():
     print("Connecting to Hoppers server on {}...".format(SERVER_ADDRESS))
-    sock.sendto(game.constants.REGISTER, server_address)
+    sock.connect(server_address)
 
 initialize()
 start_game()
