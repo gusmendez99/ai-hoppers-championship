@@ -87,6 +87,8 @@ def bot_thread():
     """
     This function handles bot response (moves)
     """
+    handshake_message = "GG"
+    sock.sendto(handshake_message.encode(), server_address)
     while not GAME_OVER:
         # Listen for Minimax or RL & MCTS Bot
         # TODO: await for Bot response

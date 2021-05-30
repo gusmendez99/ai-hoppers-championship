@@ -47,9 +47,12 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
     start = time.time()
 
     while not WINNER or not TIME_EXP:
+        # TODO: make refactor, the two players do the same...
         # Start to receive moves
-        print("Receiving coords from first player")
         first_player_req, addr = sock.recvfrom(BUFF_SIZE)
+        if addr not in board.players:
+            sock.sendto(f"{SERVER_FULL}".encode(), addr)
+            continue
 
         # Parse bytes response to string
         first_player_req = first_player_req.decode()
@@ -57,6 +60,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         
         # Validate player 1 & action
         if addr == board.players[0] and action == NEW_MOVE:
+            print("Receiving coords from first player")
             coords = get_coords(first_player_req)
             legal_moves = referee.generate_legal_moves(coords[0][0], coords[0][1], board)
             # TODO: modify move_piece() and return a bool if movement was performed successfully
@@ -82,8 +86,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             board.change_turn()
 
         
-        print("Receiving coords from second player")
         second_player_req, addr = sock.recvfrom(BUFF_SIZE)
+        if addr not in board.players:
+            sock.sendto(f"{SERVER_FULL}".encode(), addr)
+            continue
 
         # Parse bytes response to string
         second_player_req = second_player_req.decode()
@@ -91,6 +97,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         
         # Validate player 2 & action
         if addr == board.players[1] and action == NEW_MOVE:
+            print("Receiving coords from second player")
             coords = get_coords(second_player_req)
             legal_moves = referee.generate_legal_moves(coords[0][0], coords[0][1], board)
             # TODO: modify move_piece() and return a bool if movement was performed successfully
