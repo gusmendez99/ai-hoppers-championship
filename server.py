@@ -13,17 +13,18 @@ import game.constants
 WINNER = False
 TIME_LIMIT = 900 #for 15 mins
 TIME_EXP = False
-
+SERVER_DEFAULT_IP = "127.0.0.1"
 
 if len(sys.argv) <= 1:
-    print("<PORT NUMBER> not defined")
+    print("<port> not defined")
     sys.exit()
 
 board = Board()
 
 with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
 
-    server_address = ("localhost", int(sys.argv[1]))
+    server_port = int(sys.argv[1])
+    server_address = (SERVER_DEFAULT_IP, server_port)
 
     sock.bind(server_address)
 
