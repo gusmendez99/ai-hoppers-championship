@@ -2,12 +2,16 @@ import socket
 import sys
 import threading
 import time
-import game.constants
+from settings import *
 from ast import literal_eval as make_tuple
 
 EXIT_CODES = {
-    game.constants.SERVER_FULL: "Server is full! Try again later",
-    game.constants.GAME_END : "Thank you for playing!"
+    SERVER_FULL: "Server is full! Try again later",
+    GAME_END : "Thank you for playing!"
+}
+
+ERROR_CODES = {
+    ILLEGAL_MOVE: "Opponent sent an illegal move, change turn!",
 }
 
 SERVER_DEFAULT_IP = "127.0.0.1" 
@@ -26,54 +30,72 @@ if sys.argv[1] == "default":
 
 server_address = (server_ip, server_port)
 
+# TODO: declare your board
+# board = Board()
 
-def display_game(board):
-    # this function handles displaying the game
+def display_game():
     # TODO: add board local representation
-    print(board)
+    # board.print()
+
+    a = 1 # TODO: remove when you have done the above task...
 
 def game_thread():
     # this function handles display
     global GAME_OVER
     while not GAME_OVER:
-        response, _ = sock.recvfrom(game.constants.BUFF_SIZE)
+        response, _ = sock.recvfrom(BUFF_SIZE)
 
-        # Parse response bytes to string
+        # Parse bytes response to string
         response = response.decode()
+        action, data = response[0], response[1:]
         
-        if response[0] == game.constants.MY_PLAYER_POSITION:
+        if action == REGISTER:
             # Payload: Player position, assigned by the server
             player_position = None
-            if game.constants.P1_POSITION == make_tuple(response[1:]):
-                player_position = game.constants.P1_POSITION
-            elif game.constants.P2_POSITION == make_tuple(response[1:]):
-                player_position = game.constants.P2_POSITION
+            if P1_POSITION == make_tuple(data):
+                player_position = P1_POSITION
+            elif P2_POSITION == make_tuple(data):
+                player_position = P2_POSITION
 
             x, y = player_position
             print("Player assigned to: {},{}".format(x, y))
 
             # TODO: initialize your board, knowing which player (x,y) you were assigned by the server
-
+            """
+            board.initialize()
+            my_player = P1(Red) if player_position==P1_POSITION else P2(Blue)
+            board.set_my_player(my_player)
+            """
 
             # TODO: start local game
+            # board.init_pieces()
             
 
-        elif response[0] in EXIT_CODES:
+        elif action in EXIT_CODES:
             print(EXIT_CODES[response])
             GAME_OVER = True
 
+        elif action in ERROR_CODES:
+            print(ERROR_CODES[response])
+            # TODO: change/omit opponent turn, and continue game
+            # board.change_turn()
+
         else:
-            print(response)
+            print(action, data)
 
 def bot_thread():
-    new_move = "GG"
-    sock.sendto(new_move.encode(), server_address)
-    # this function handles bot input
+    """
+    This function handles bot response (moves)
+    """
     while not GAME_OVER:
-        # listen for Minimax or RL & MCTS Bot
+        # Listen for Minimax or RL & MCTS Bot
         # TODO: await for Bot response
-        # new_move = await
-        a = 1 
+        """
+        move = ai_agent.get_best_move(board)
+        sock.sendto(f"{NEW_MOVE}{move}", server_address)
+        """
+
+        a = 1 # TODO: remove when you have done the above task...
         
 
 def start_game():

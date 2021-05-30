@@ -1,6 +1,25 @@
 
 import numpy as np
 
+"""
+    Board representation
+    BLUE = 2
+    RED = 1
+    EMPTY = 0
+
+    ____________________
+    R R R R R
+    R R R R
+    R R R
+    R R
+    R
+                      B
+                    B B
+                  B B B
+                B B B B
+              B B B B B
+    ____________________      
+"""
 class Board:
 
     BLUE = 2
@@ -13,42 +32,47 @@ class Board:
         self.size = size
         self.turn = 1
         self.board = np.full((self.size,self.size), self.EMPTY)
-        self.blueCorner = []
-        self.redCorner = []
+        self.blue_corner = []
+        self.red_corner = []
         
-        self.initPieces()
-        self.getRedCorner(int(size/2))
-        self.getBlueCorner(int(size/2))
-        self.chosenMove = 0
+        self.init_pieces()
+        self.get_red_corner(int(size/2))
+        self.get_blue_corner(int(size/2))
+        self.chosen_move = 0
 
-    def changeTurn(self):
+    def change_turn(self):
         if self.turn == 1:
             self.turn = 2
         else:
             self.turn = 1
 
-    def setTurn(self, turn):
+    def set_turn(self, turn):
         self.turn = turn
 
-    def detectWin(self):
-        blueWins = False
-        redWins = False
+    def detect_win(self):
+        blue_wins = False
+        red_wins = False
+        red_coins = 0
+        blue_coins = 0
+        empty_coins = 0
 
         #check if all the tiles in blue corner are filled with red
-        for coord in self.blueCorner:
-            if self.get_piece_at(coord[0], coord[1]) == False or self.get_piece_at(coord[0],coord[1]) == 2:
-                redWins = False
-                break
-            elif self.get_piece_at(coord[0], coord[1]) == 1:
-                redWins = True
-        for coord in self.redCorner:
-            if self.get_piece_at(coord[0], coord[1]) == False or self.get_piece_at(coord[0], coord[1]) == 1:
-                blueWins = False
-                break
-            elif self.get_piece_at(coord[0], coord[1]) == 2:
-                blueWins = True
-
-        return (redWins, blueWins)
+        for coord in self.blue_corner:
+            if self.get_piece_at(coord[0], coord[1]) == self.BLUE:
+                blue_coins += 1
+            if self.get_piece_at(coord[0], coord[1]) == self.EMPTY:
+                empty_coins += 1
+        if blue_coins < 15 and empty_coins == 0:
+            red_wins = True
+        empty_coins = 0
+        for coord in self.red_corner:
+            if self.get_piece_at(coord[0], coord[1]) == self.RED:
+                red_coins += 1
+            elif self.get_piece_at(coord[0], coord[1]) == self.EMPTY:
+                empty_coins += 1
+        if red_coins < 15 and empty_coins == 0:
+            blue_wins = True
+        return (red_wins, blue_wins)
     
     def get_piece_at(self, row, col):
         return self.board[row][col]
@@ -57,28 +81,28 @@ class Board:
     def get_board(self):
         return self.board
 
-    def initPieces(self):
+    def init_pieces(self):
         for i in range(5):
             self.board[i,:5-i] = self.RED
         for j in range(5,10):
             self.board[j,(5+9-j):10] = self.BLUE
 
-    def getRedCorner(self, size):
+    def get_red_corner(self, size):
         # points = np.where(self.board == self.RED)
         # for i in zip(points[0],points[1]):
-        #     self.redCorner.append(i)
+        #     self.red_corner.append(i)
         for i in range(0, size):
             for j in range(0, size-i):
-                self.redCorner.append((i,j))        
+                self.red_corner.append((i,j))        
 
     
-    def getBlueCorner(self, size):
+    def get_blue_corner(self, size):
         for i in range(0, size):
             cur_row = (size * 2) - (size -i)
             start_col = size * 2 - 1 - i
             end_col = size * 2
             for col in range(start_col, end_col):
-                self.blueCorner.append((cur_row, col))
+                self.blue_corner.append((cur_row, col))
 
 
     def get_height(self):

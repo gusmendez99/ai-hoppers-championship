@@ -3,23 +3,22 @@ import sys
 import random
 import numpy as np
 import time
-
+from settings import *
+# Game
 from game.board import Board
 from game.referee import Referee
-from game.utils import getCoords
-
-import game.constants
+from game.utils import get_coords
 
 WINNER = False
-TIME_LIMIT = 900 #for 15 mins
 TIME_EXP = False
 SERVER_DEFAULT_IP = "127.0.0.1"
 
 if len(sys.argv) <= 1:
-    print("<port> not defined")
+    print("usage: server.py <port>")
     sys.exit()
 
 board = Board()
+board.init_pieces()
 
 with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
 
@@ -28,69 +27,93 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
 
     sock.bind(server_address)
 
-    while len(board.players) < game.constants.MAX_PLAYERS:
+    while len(board.players) < MAX_PLAYERS:
         print("Waiting for players ... ")
-        conn, addr = sock.recvfrom(game.constants.BUFF_SIZE)
+        conn, addr = sock.recvfrom(BUFF_SIZE)
         print("One player entered!")
-        board.players.append(addr) #ponerle algo mas bonito como add player
+        board.players.append(addr)
 
     print("Game ready!")
     referee = Referee()
     board.pp_board()
 
     # Turn will be choose as follow:
-    #   the first one to be connected will go first and goes in the buttom corner
-    #   te second one to be connected will go second and goes in the up corner
+    #   The first one to be connected will have TURN 1 and placed at (0,0) [Red]
+    #   The second one to be connected will have TURN 2, and placed at (9,9) [Blue]
 
-    # TODO: send XML/JSON with init Game message an started positions
-    sock.sendto("P(0,0)".encode(), board.players[0])
-    sock.sendto("P(9,9)".encode(), board.players[1])
+    sock.sendto(f"{REGISTER}(0,0)".encode(), board.players[0])
+    sock.sendto(f"{REGISTER}(9,9)".encode(), board.players[1])
 
     start = time.time()
 
     while not WINNER or not TIME_EXP:
-        #start to recieve moves
-        print("Recieving coords from first player")
-        first_player_req = sock.recv(game.constants.BUFF_SIZE) #this method could be recvfrom for check the address of the player
-        coords = getCoords(first_player_req)
-        legal_moves = referee.generate_legal_moves(coords[0][0], coords[0][1], board)
-        if coords[1] in legal_moves:
-            board.move_piece(coords[0], coords[1]) #also here we need to check either there is a for the user in that start position
-        else:
-            print("Illegal move") # TODO: handle illegal moves : may be just pass the turn
+        # Start to receive moves
+        print("Receiving coords from first player")
+        first_player_req, addr = sock.recvfrom(BUFF_SIZE)
 
-        board.pp_board()
+        # Parse bytes response to string
+        first_player_req = first_player_req.decode()
+        action, data = first_player_req[0], first_player_req[1:]
+        
+        # Validate player 1 & action
+        if addr == board.players[0] and action == NEW_MOVE:
+            coords = get_coords(first_player_req)
+            legal_moves = referee.generate_legal_moves(coords[0][0], coords[0][1], board)
+            # TODO: modify move_piece() and return a bool if movement was performed successfully
+            if coords[1] in legal_moves:
+                board.move_piece(coords[0], coords[1])
+                # Send move to the opponent
+                sock.sendto(f"{NEW_MOVE}{data}".encode(), board.players[1])
+            else:
+                print("Illegal move")
+                # Send error to the opponent
+                sock.sendto(f"{ILLEGAL_MOVE}".encode(), board.players[1])
 
-        winner = board.detectWin()
-        if winner[0]:
-            print("First player wins")
-            WINNER = True
+            board.pp_board()
+            winner = board.detect_win()
+            if winner[0]:
+                print("Player 1 wins")
+                WINNER = True
 
-        if winner[1]:
-            print ("Second player wins")
-            WINNER = True
+            if winner[1]:
+                print ("Player 2 wins")
+                WINNER = True
+            
+            board.change_turn()
 
         
-        print("Recieving coords from second player")
-        second_player_req = sock.recv(game.constants.BUFF_SIZE) #this method could be recvfrom for check the address of the player
-        coords = getCoords(second_player_req)
-        legal_moves = referee.generate_legal_moves(coords[0][0], coords[0][1], board)
-        if coords[1] in legal_moves:
-            board.move_piece(coords[0], coords[1]) #also here we need to check either there is a for the user in that start position
-        else:
-            print("Illegal move") # TODO: handle illegal moves : may be just pass the turn
+        print("Receiving coords from second player")
+        second_player_req, addr = sock.recvfrom(BUFF_SIZE)
 
-        board.pp_board()
+        # Parse bytes response to string
+        second_player_req = second_player_req.decode()
+        action, data = second_player_req[0], second_player_req[1:]
+        
+        # Validate player 2 & action
+        if addr == board.players[1] and action == NEW_MOVE:
+            coords = get_coords(second_player_req)
+            legal_moves = referee.generate_legal_moves(coords[0][0], coords[0][1], board)
+            # TODO: modify move_piece() and return a bool if movement was performed successfully
+            if coords[1] in legal_moves:
+                board.move_piece(coords[0], coords[1])
+                # Send move to the opponent
+                sock.sendto(f"{NEW_MOVE}{data}".encode(), board.players[0])
+            else:
+                print("Illegal move")
+                # Send error to the opponent
+                sock.sendto(f"{ILLEGAL_MOVE}".encode(), board.players[0])
 
+            board.pp_board()
+            winner = board.detect_win()
+            if winner[0]:
+                print("Player 1 wins")
+                WINNER = True
 
-        winner = board.detectWin()
-        if winner[0]:
-            print("First player wins")
-            WINNER = True
+            if winner[1]:
+                print ("Player 2 wins")
+                WINNER = True
 
-        if winner[1]:
-            print ("Second player wins")
-            WINNER = True
+            board.change_turn()
 
         #check time
         end = time.time()
@@ -98,7 +121,16 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         if elapsed >= TIME_LIMIT:
             TIME_EXP = True
             print("Time has expired")
-            sock.close()
-
+    
+    # Close connection
     sock.close()
+
+    # Send game status to both players
+    sock.sendto(f"{GAME_END}".encode(), board.players[0])
+    sock.sendto(f"{GAME_END}".encode(), board.players[1])
+
+    # If time has expired, we need to decide a winner based on best board
+    print("[END] Time has expired, we need to choose a winner...")
+    board.pp_board()
+
 

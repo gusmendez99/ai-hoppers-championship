@@ -4,7 +4,7 @@ class Referee:
 
     def __init__(self):
 
-        self.prevSpots = []
+        self.prev_spots = []
         self.move_list = []
 
 
@@ -34,17 +34,17 @@ class Referee:
                     if (row_jump_offset) < 0 or (col_jump_offset) < 0:
                         continue
                 
-                    if(board[row + 2*row_offset][col+2*col_offset] == 0 and (row + 2*row_offset, col+2*col_offset) not in self.prevSpots):
+                    if(board[row + 2*row_offset][col+2*col_offset] == 0 and (row + 2*row_offset, col+2*col_offset) not in self.prev_spots):
                         
-                        if(board[row][col] == 1 and (row,col) not in gameboard.redCorner):
-                            if((row_jump_offset, col_jump_offset) in gameboard.redCorner):
+                        if(board[row][col] == 1 and (row,col) not in gameboard.red_corner):
+                            if((row_jump_offset, col_jump_offset) in gameboard.red_corner):
                                 continue
                     
-                        if(board[row][col] == 2 and (row, col) not in gameboard.blueCorner):
-                            if((row_jump_offset, col_jump_offset) in gameboard.blueCorner):
+                        if(board[row][col] == 2 and (row, col) not in gameboard.blue_corner):
+                            if((row_jump_offset, col_jump_offset) in gameboard.blue_corner):
                                 continue
                     
-                        self.prevSpots.append((row, col))
+                        self.prev_spots.append((row, col))
                         jumps.append((row + 2*row_offset, col + 2*col_offset))
                         
                         future_hops = self.hop_search(row_jump_offset, col_jump_offset, board)
@@ -90,12 +90,12 @@ class Referee:
                     continue
                 
                 if (board[row + row_offset][col + col_offset] == 0): #means its empty
-                    if (board[row][col] == 1 and (row, col) not in gameboard.redCorner):
-                        if ((row + row_offset, col + col_offset) in gameboard.redCorner):
+                    if (board[row][col] == 1 and (row, col) not in gameboard.red_corner):
+                        if ((row + row_offset, col + col_offset) in gameboard.red_corner):
                             continue
                 
-                    if (board[row][col] == 2 and (row, col) not in gameboard.blueCorner):
-                        if ((row + row_offset, col + col_offset) in gameboard.blueCorner):
+                    if (board[row][col] == 2 and (row, col) not in gameboard.blue_corner):
+                        if ((row + row_offset, col + col_offset) in gameboard.blue_corner):
                             continue
 
                     legal_moves.append((row + row_offset, col + col_offset))
@@ -109,4 +109,4 @@ class Referee:
         return legal_moves
 
     def clear_prev_spots(self):
-        self.prevSpots = []
+        self.prev_spots = []
