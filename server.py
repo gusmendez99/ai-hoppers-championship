@@ -6,8 +6,8 @@ import time
 import utils
 from settings import *
 # Game
-from game.board import Board
-from game.referee import Referee
+from hoppers.game.board import Board
+from hoppers.game.referee import Referee
 
 WINNER = False
 TIME_EXP = False

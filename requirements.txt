@@ -1,2 +1,3 @@
 numpy==1.18.4
 xmltodict==0.12.0
+git+https://github.com/RobertoFigueroa/hoppers-minimax-lib.git#egg=hoppers
