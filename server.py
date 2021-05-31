@@ -3,15 +3,14 @@ import sys
 import random
 import numpy as np
 import time
+import utils
 from settings import *
 # Game
 from game.board import Board
 from game.referee import Referee
-from game.utils import get_coords
 
 WINNER = False
 TIME_EXP = False
-SERVER_DEFAULT_IP = "127.0.0.1"
 
 if len(sys.argv) <= 1:
     print("usage: server.py <port>")
@@ -49,6 +48,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
     while not WINNER or not TIME_EXP:
         # TODO: make refactor, the two players do the same...
         # Start to receive moves
+        print("Waiting for new move from Player 1...")
         first_player_req, addr = sock.recvfrom(BUFF_SIZE)
         if addr not in board.players:
             sock.sendto(f"{SERVER_FULL}".encode(), addr)
@@ -56,18 +56,29 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
 
         # Parse bytes response to string
         first_player_req = first_player_req.decode()
-        action, data = first_player_req[0], first_player_req[1:]
+        action, payload = first_player_req[0], first_player_req[1:]
         
         # Validate player 1 & action
         if addr == board.players[0] and action == NEW_MOVE:
-            print("Receiving coords from first player")
-            coords = get_coords(first_player_req)
-            legal_moves = referee.generate_legal_moves(coords[0][0], coords[0][1], board)
+            dict_move = utils.from_xml(payload)
+
+            initial_row, initial_col = int(dict_move['from']['@row']), int(dict_move['from']['@col'])
+            final_row, final_col = int(dict_move['to']['@row']), int(dict_move['to']['@col'])
+
+            # Finally, we need to move the piece placed at initial position
+            new_move = [
+                (initial_row, initial_col), 
+                (final_row, final_col)
+            ]
+
+            print(f"Move received: {initial_row},{initial_col} to {final_row},{final_col}")
+            legal_moves = referee.generate_legal_moves(new_move[0][0], new_move[0][1], board.get_board())
             # TODO: modify move_piece() and return a bool if movement was performed successfully
-            if coords[1] in legal_moves:
-                board.move_piece(coords[0], coords[1])
+
+            if new_move[1] in legal_moves:
+                board.move_piece(new_move[0], new_move[1])
                 # Send move to the opponent
-                sock.sendto(f"{NEW_MOVE}{data}".encode(), board.players[1])
+                sock.sendto(f"{NEW_MOVE}{payload}".encode(), board.players[1])
             else:
                 print("Illegal move")
                 # Send error to the opponent
@@ -86,25 +97,37 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             board.change_turn()
 
         
+        print("Waiting for new move from Player 2...")
         second_player_req, addr = sock.recvfrom(BUFF_SIZE)
         if addr not in board.players:
             sock.sendto(f"{SERVER_FULL}".encode(), addr)
             continue
-
+        
         # Parse bytes response to string
         second_player_req = second_player_req.decode()
-        action, data = second_player_req[0], second_player_req[1:]
+        action, payload = second_player_req[0], second_player_req[1:]
         
         # Validate player 2 & action
         if addr == board.players[1] and action == NEW_MOVE:
-            print("Receiving coords from second player")
-            coords = get_coords(second_player_req)
-            legal_moves = referee.generate_legal_moves(coords[0][0], coords[0][1], board)
+            dict_move = utils.from_xml(payload)
+
+            initial_row, initial_col = int(dict_move['from']['@row']), int(dict_move['from']['@col'])
+            final_row, final_col = int(dict_move['to']['@row']), int(dict_move['to']['@col'])
+
+            # Finally, we need to move the piece placed at initial position
+            new_move = [
+                (initial_row, initial_col), 
+                (final_row, final_col)
+            ]
+
+
+            print(f"Move received: {initial_row},{initial_col} to {final_row},{final_col}")
+            legal_moves = referee.generate_legal_moves(new_move[0][0], new_move[0][1], board.get_board())
             # TODO: modify move_piece() and return a bool if movement was performed successfully
-            if coords[1] in legal_moves:
-                board.move_piece(coords[0], coords[1])
+            if new_move[1] in legal_moves:
+                board.move_piece(new_move[0], new_move[1])
                 # Send move to the opponent
-                sock.sendto(f"{NEW_MOVE}{data}".encode(), board.players[0])
+                sock.sendto(f"{NEW_MOVE}{payload}".encode(), board.players[0])
             else:
                 print("Illegal move")
                 # Send error to the opponent
@@ -129,6 +152,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             TIME_EXP = True
             print("Time has expired")
     
+
     # Close connection
     sock.close()
 

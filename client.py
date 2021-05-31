@@ -2,8 +2,14 @@ import socket
 import sys
 import threading
 import time
+import utils
 from settings import *
 from ast import literal_eval as make_tuple
+
+# TODO: import your minimax & board code, or you can overwrite the TODOs in @RobertoFigueroa lib module...
+from game.board import Board
+from game.minimax import Minimax
+from game.node import Node
 
 EXIT_CODES = {
     SERVER_FULL: "Server is full! Try again later",
@@ -13,8 +19,6 @@ EXIT_CODES = {
 ERROR_CODES = {
     ILLEGAL_MOVE: "Opponent sent an illegal move, change turn!",
 }
-
-SERVER_DEFAULT_IP = "127.0.0.1" 
 GAME_OVER = False
 
 if len(sys.argv) != 3:
@@ -30,46 +34,67 @@ if sys.argv[1] == "default":
 
 server_address = (server_ip, server_port)
 
-# TODO: declare your board
-# board = Board()
+# TODO: declare your board & your minimax bot
+board = Board()
+ai_bot = Minimax(TIME_LIMIT, True)
+my_turn = None
 
 def display_game():
-    # TODO: add board local representation
-    # board.print()
+    # TODO: show your board
+    board.pp_board()
 
-    a = 1 # TODO: remove when you have done the above task...
+    # a = 1 # TODO: comment this line when you have done the above task...
 
 def game_thread():
     # this function handles display
     global GAME_OVER
+    global my_turn
+    global board
     while not GAME_OVER:
         response, _ = sock.recvfrom(BUFF_SIZE)
 
         # Parse bytes response to string
         response = response.decode()
-        action, data = response[0], response[1:]
+        action, payload = response[0], response[1:]
         
         if action == REGISTER:
             # Payload: Player position, assigned by the server
             player_position = None
-            if P1_POSITION == make_tuple(data):
+            if P1_POSITION == make_tuple(payload):
                 player_position = P1_POSITION
-            elif P2_POSITION == make_tuple(data):
+            elif P2_POSITION == make_tuple(payload):
                 player_position = P2_POSITION
 
             x, y = player_position
-            print("Player assigned to: {},{}".format(x, y))
+            print(f"Player assigned to: {x},{y}")
 
             # TODO: initialize your board, knowing which player (x,y) you were assigned by the server
-            """
-            board.initialize()
-            my_player = P1(Red) if player_position==P1_POSITION else P2(Blue)
-            board.set_my_player(my_player)
-            """
+            my_turn = P1 if player_position == P1_POSITION else P2
+            # board.set_turn(my_turn)
 
             # TODO: start local game
-            # board.init_pieces()
+            board.init_pieces()  
+            # board.pp_board()
+
+        elif action == NEW_MOVE:
+            dict_move = utils.from_xml(payload)
+
+            initial_row, initial_col = int(dict_move['from']['@row']), int(dict_move['from']['@col'])
+            final_row, final_col = int(dict_move['to']['@row']), int(dict_move['to']['@col'])
+
+            # Finally, we need to move the piece placed at initial position
+            # You can use a namedtuple as Position = (x, y) if you manage your pieces in this way
+            new_move = [
+                (initial_row, initial_col), 
+                (final_row, final_col)
+            ]
             
+            print(f"Move received: {initial_row},{initial_col} to {final_row},{final_col}")
+            # TODO: process new move in your board & change turn
+            board.move_piece(new_move[0], new_move[1])
+            board.pp_board()
+            board.change_turn()
+
 
         elif action in EXIT_CODES:
             print(EXIT_CODES[response])
@@ -78,26 +103,47 @@ def game_thread():
         elif action in ERROR_CODES:
             print(ERROR_CODES[response])
             # TODO: change/omit opponent turn, and continue game
-            # board.change_turn()
+            board.change_turn()
 
         else:
-            print(action, data)
+            print(action, payload)
 
 def bot_thread():
     """
     This function handles bot response (moves)
     """
-    handshake_message = "GG"
+    # Server handshake
+    handshake_message = HANDSHAKE
     sock.sendto(handshake_message.encode(), server_address)
-    while not GAME_OVER:
-        # Listen for Minimax or RL & MCTS Bot
-        # TODO: await for Bot response
-        """
-        move = ai_agent.get_best_move(board)
-        sock.sendto(f"{NEW_MOVE}{move}", server_address)
-        """
 
-        a = 1 # TODO: remove when you have done the above task...
+    global GAME_OVER
+    global my_turn
+    global board
+    while not GAME_OVER:
+        # print(board.turn)
+        if board.turn == my_turn:
+            # Listen for Minimax or RL & MCTS Bot
+            copy_board = Board()
+            copy_board.set_board(board.get_board())
+            root_node = Node(board.turn, copy_board, 3)
+            print("AI thinking")
+
+            # TODO: await for Bot response to process its move
+            return_node, best_move = ai_bot.alpha_beta_minimax(root_node)
+            print("AI move  from {} to {}".format(best_move[0], best_move[1]))
+            
+            move_dict = {
+                'from': best_move[0],
+                'to': best_move[1]
+            }
+            move = utils.to_xml(move_dict)
+            sock.sendto(f"{NEW_MOVE}{move}".encode(), server_address)
+
+            print("Now I have sent a new move to server...")
+            board.move_piece(best_move[0], best_move[1])
+            board.change_turn()
+
+            # a = 1 # TODO: remove when you have done the above task...
         
 
 def start_game():
@@ -112,7 +158,7 @@ def start_game():
         time.sleep(1)
 
 def initialize():
-    print("Connecting to Hoppers server on {}...".format(server_ip))
+    print(f"Connecting to Hoppers server on {server_ip}...")
     sock.connect(server_address)
 
 initialize()
