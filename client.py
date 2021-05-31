@@ -35,15 +35,15 @@ if sys.argv[1] == "default":
 server_address = (server_ip, server_port)
 
 # TODO: declare your board & your minimax bot
-board = Board()
+""" board = Board()
 ai_bot = Minimax(TIME_LIMIT, True)
-my_turn = None
+my_turn = None """
 
 def display_game():
     # TODO: show your board
-    board.pp_board()
+    # board.pp_board()
 
-    # a = 1 # TODO: comment this line when you have done the above task...
+    a = 1 # TODO: comment this line when you have done the above task...
 
 def game_thread():
     # this function handles display
@@ -69,12 +69,10 @@ def game_thread():
             print(f"Player assigned to: {x},{y}")
 
             # TODO: initialize your board, knowing which player (x,y) you were assigned by the server
-            my_turn = P1 if player_position == P1_POSITION else P2
-            # board.set_turn(my_turn)
+            # my_turn = P1 if player_position == P1_POSITION else P2
 
             # TODO: start local game
-            board.init_pieces()  
-            # board.pp_board()
+            # board.init_pieces()
 
         elif action == NEW_MOVE:
             dict_move = utils.from_xml(payload)
@@ -91,9 +89,9 @@ def game_thread():
             
             print(f"Move received: {initial_row},{initial_col} to {final_row},{final_col}")
             # TODO: process new move in your board & change turn
-            board.move_piece(new_move[0], new_move[1])
+            """ board.move_piece(new_move[0], new_move[1])
             board.pp_board()
-            board.change_turn()
+            board.change_turn() """
 
 
         elif action in EXIT_CODES:
@@ -103,7 +101,7 @@ def game_thread():
         elif action in ERROR_CODES:
             print(ERROR_CODES[response])
             # TODO: change/omit opponent turn, and continue game
-            board.change_turn()
+            """ board.change_turn() """
 
         else:
             print(action, payload)
@@ -120,17 +118,18 @@ def bot_thread():
     global my_turn
     global board
     while not GAME_OVER:
-        # print(board.turn)
         if board.turn == my_turn:
             # Listen for Minimax or RL & MCTS Bot
-            copy_board = Board()
+
+            # TODO: Your own AI Implementation
+            """ copy_board = Board()
             copy_board.set_board(board.get_board())
             root_node = Node(board.turn, copy_board, 3)
-            print("AI thinking")
+            print("AI thinking") """
 
             # TODO: await for Bot response to process its move
-            return_node, best_move = ai_bot.alpha_beta_minimax(root_node)
-            print("AI move  from {} to {}".format(best_move[0], best_move[1]))
+            """ return_node, best_move = ai_bot.alpha_beta_minimax(root_node)
+            print("AI move  from {} to {}".format(best_move[0], best_move[1])) """
             
             move_dict = {
                 'from': best_move[0],
@@ -139,11 +138,10 @@ def bot_thread():
             move = utils.to_xml(move_dict)
             sock.sendto(f"{NEW_MOVE}{move}".encode(), server_address)
 
-            print("Now I have sent a new move to server...")
+            # TODO: move pieces and change turn
+            """ print("Now I have sent a new move to server...")
             board.move_piece(best_move[0], best_move[1])
-            board.change_turn()
-
-            # a = 1 # TODO: remove when you have done the above task...
+            board.change_turn() """
         
 
 def start_game():
