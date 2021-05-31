@@ -3,6 +3,10 @@
 
 The client was tested with [@RobertoFigueroa](https://github.com/RobertoFigueroa)'s Minimax, and whole code was not included for the obvious reason of being a tournament
 
+
+## Demo
+![demo](https://github.com/gusmendez99/ai-hoppers-tournament/raw/main/images/hoppers.gif?raw=true)
+
 ## Install
 You need to create a virtual env and install libs from `requirements.txt`
 
