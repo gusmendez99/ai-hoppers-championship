@@ -7,7 +7,7 @@ import utils
 from settings import *
 # Game
 from hoppers.game.board import Board
-from referee import Referee
+from hoppers.game.referee import Referee
 
 WINNER = False
 TIME_EXP = False
