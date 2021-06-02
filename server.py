@@ -7,7 +7,7 @@ import utils
 from settings import *
 # Game
 from hoppers.game.board import Board
-from hoppers.game.referee import Referee
+from referee import Referee
 
 WINNER = False
 TIME_EXP = False
@@ -73,6 +73,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
 
             print(f"Move received: {initial_row},{initial_col} to {final_row},{final_col}")
             legal_moves = referee.generate_legal_moves(new_move[0][0], new_move[0][1], board.get_board())
+            print("Legal moves:", legal_moves)
+            referee.clear_prev_spots()
             # TODO: modify move_piece() and return a bool if movement was performed successfully
 
             if new_move[1] in legal_moves:
@@ -123,6 +125,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
 
             print(f"Move received: {initial_row},{initial_col} to {final_row},{final_col}")
             legal_moves = referee.generate_legal_moves(new_move[0][0], new_move[0][1], board.get_board())
+            print("Legal moves:", legal_moves)
+            referee.clear_prev_spots()
             # TODO: modify move_piece() and return a bool if movement was performed successfully
             if new_move[1] in legal_moves:
                 board.move_piece(new_move[0], new_move[1])
