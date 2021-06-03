@@ -25,7 +25,7 @@ if len(sys.argv) != 3:
     print("usage: client.py <server-ip> <port>")
     sys.exit()
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 server_ip = sys.argv[1]
 server_port = int(sys.argv[2])
@@ -111,8 +111,8 @@ def bot_thread():
     This function handles bot response (moves)
     """
     # Server handshake
-    handshake_message = HANDSHAKE
-    sock.sendto(handshake_message.encode(), server_address)
+    # handshake_message = HANDSHAKE
+    # sock.sendto(handshake_message.encode(), server_address)
 
     global GAME_OVER
     global my_turn
@@ -136,7 +136,7 @@ def bot_thread():
                 'to': best_move[1]
             }
             move = utils.to_xml(move_dict)
-            sock.sendto(f"{NEW_MOVE}{move}".encode(), server_address)
+            sock.send(f"{NEW_MOVE}{move}".encode())
 
             # TODO: move pieces and change turn
             """ print("Now I have sent a new move to server...")
