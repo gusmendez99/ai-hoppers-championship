@@ -19,18 +19,22 @@ if len(sys.argv) <= 1:
 board = Board()
 board.init_pieces()
 
-with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
 
     server_port = int(sys.argv[1])
     server_address = (SERVER_DEFAULT_IP, server_port)
 
     sock.bind(server_address)
+    sock.listen(5)
 
-    while len(board.players) < MAX_PLAYERS:
+    connections = []
+
+    while len(board.players) < MAX_PLAYERS and len(connections) < MAX_PLAYERS:
         print("Waiting for players ... ")
-        conn, addr = sock.recvfrom(BUFF_SIZE)
+        conn, addr = sock.accept()
         print("One player entered!")
         board.players.append(addr)
+        connections.append(conn)
 
     print("Game ready!")
     referee = Referee()
@@ -40,8 +44,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
     #   The first one to be connected will have TURN 1 and placed at (0,0) [Red]
     #   The second one to be connected will have TURN 2, and placed at (9,9) [Blue]
 
-    sock.sendto(f"{REGISTER}(0,0)".encode(), board.players[0])
-    sock.sendto(f"{REGISTER}(9,9)".encode(), board.players[1])
+    connections[0].send(f"{REGISTER}(0,0)".encode())
+    connections[1].send(f"{REGISTER}(9,9)".encode())
 
     start = time.time()
 
@@ -49,17 +53,14 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         # TODO: make refactor, the two players do the same...
         # Start to receive moves
         print("Waiting for new move from Player 1...")
-        first_player_req, addr = sock.recvfrom(BUFF_SIZE)
-        if addr not in board.players:
-            sock.sendto(f"{SERVER_FULL}".encode(), addr)
-            continue
-
+        first_player_req = connections[0].recv(BUFF_SIZE)
+        
         # Parse bytes response to string
         first_player_req = first_player_req.decode()
         action, payload = first_player_req[0], first_player_req[1:]
         
         # Validate player 1 & action
-        if addr == board.players[0] and action == NEW_MOVE:
+        if action == NEW_MOVE:
             dict_move = utils.from_xml(payload)
 
             initial_row, initial_col = int(dict_move['from']['@row']), int(dict_move['from']['@col'])
@@ -80,11 +81,11 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             if new_move[1] in legal_moves:
                 board.move_piece(new_move[0], new_move[1])
                 # Send move to the opponent
-                sock.sendto(f"{NEW_MOVE}{payload}".encode(), board.players[1])
+                connections[1].send(f"{NEW_MOVE}{payload}".encode())
             else:
                 print("Illegal move")
                 # Send error to the opponent
-                sock.sendto(f"{ILLEGAL_MOVE}".encode(), board.players[1])
+                connections[1].send(f"{ILLEGAL_MOVE}".encode())
 
             board.pp_board()
             winner = board.detect_win()
@@ -100,17 +101,14 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
 
         
         print("Waiting for new move from Player 2...")
-        second_player_req, addr = sock.recvfrom(BUFF_SIZE)
-        if addr not in board.players:
-            sock.sendto(f"{SERVER_FULL}".encode(), addr)
-            continue
+        second_player_req = connections[1].recv(BUFF_SIZE)
         
         # Parse bytes response to string
         second_player_req = second_player_req.decode()
         action, payload = second_player_req[0], second_player_req[1:]
         
         # Validate player 2 & action
-        if addr == board.players[1] and action == NEW_MOVE:
+        if action == NEW_MOVE:
             dict_move = utils.from_xml(payload)
 
             initial_row, initial_col = int(dict_move['from']['@row']), int(dict_move['from']['@col'])
@@ -131,11 +129,11 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             if new_move[1] in legal_moves:
                 board.move_piece(new_move[0], new_move[1])
                 # Send move to the opponent
-                sock.sendto(f"{NEW_MOVE}{payload}".encode(), board.players[0])
+                connections[0].send(f"{NEW_MOVE}{payload}".encode())
             else:
                 print("Illegal move")
                 # Send error to the opponent
-                sock.sendto(f"{ILLEGAL_MOVE}".encode(), board.players[0])
+                connections[0].send(f"{ILLEGAL_MOVE}".encode())
 
             board.pp_board()
             winner = board.detect_win()
@@ -161,8 +159,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
     sock.close()
 
     # Send game status to both players
-    sock.sendto(f"{GAME_END}".encode(), board.players[0])
-    sock.sendto(f"{GAME_END}".encode(), board.players[1])
+    connections[0].send(f"{GAME_END}".encode())
+    connections[1].send(f"{GAME_END}".encode())
 
     # If time has expired, we need to decide a winner based on best board
     print("[END] Time has expired, we need to choose a winner...")
