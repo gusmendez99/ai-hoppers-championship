@@ -5,7 +5,7 @@ WAIT_MSG = "Awaiting players... (%s/%s).\n"
 MAX_PLAYERS = 2
 BUFF_SIZE = 8192
 TIME_LIMIT = 900 #for 15 mins
-SERVER_DEFAULT_IP = "127.0.0.1"
+SERVER_DEFAULT_IP = "0.0.0.0"
 
 # Communication - Packet codes
 HANDSHAKE = 'H'
